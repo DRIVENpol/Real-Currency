@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MIT
 
+pragma solidity 0.8.17;
+
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -14,7 +16,7 @@ contract RealCurrency is ERC20, Ownable {
     using SafeERC20 for IERC20;
 
     // BUSD address
-    IERC20 _busd = IERC20(0x4fabb145d64652a948d72533023f6e7a623c7c53);
+    IERC20 _busd = IERC20(0x4Fabb145d64652a948d72533023f6E7A623C7C53);
 
     // Constructor
     constructor() ERC20("RealCurrency", "$RC") {
@@ -34,10 +36,10 @@ contract RealCurrency is ERC20, Ownable {
         uint256 _finalPrice = _pricePerToken.mul(_amount);
 
         // Receive the BUSD amount from the buyer
-        _busd.safeTransferFrom(msg.sender, address(this), _finalPrice);
+        _busd.safeTransferFrom(msg.sender, address(this), _finalPrice.mul(10 ** 18));
 
         // Send the tokens from the smart contract
-         IERC20(address(this)).safeTransferFrom(address(this), msg.sender, _amount);
+         IERC20(address(this)).safeTransferFrom(address(this), msg.sender, _amount.mul(10 ** 18));
     }
 
     // Sell tokens to the smart contract
@@ -50,10 +52,10 @@ contract RealCurrency is ERC20, Ownable {
         uint256 _finalPrice = _pricePerToken.mul(_amount);
 
         // Receive the BUSD amount from the smart contract
-        _busd.safeTransferFrom(address(this), msg.sender,  _finalPrice);
+        _busd.safeTransferFrom(address(this), msg.sender,  _finalPrice.mul(10 ** 18));
 
         // Send the tokens to the smart contract
-         IERC20(address(this)).safeTransferFrom(msg.sender, address(this), _amount);
+         IERC20(address(this)).safeTransferFrom(msg.sender, address(this), _amount.mul(10 ** 18));
     }
 
     // Get the price of the token
