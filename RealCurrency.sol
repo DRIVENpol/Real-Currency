@@ -32,6 +32,8 @@ contract RealCurrency is ERC20, Ownable {
 
     // Buy tokens directly from the smart contract
     function buyTokens(uint256 _amount) public {
+        // There should be tokens left in the smart contract
+        require(_amount.mul(10 ** decimals()) <= IERC20(address(this)).balanceOf(address(this)), "No tokens for this trade!");
 
         // Fetch the price per token
         uint256 _pricePerToken = getPrice();
@@ -57,8 +59,11 @@ contract RealCurrency is ERC20, Ownable {
         // Compute the final price
         uint256 _finalPrice = _pricePerToken.mul(_amount);
 
+        // There should be BUSD liquidity for this trade
+        require(_finalPrice.mul(10 ** decimals()) <= _busd.balanceOf(address(this)), "No liquidity for this trade!");
+
         // Send the tokens to the smart contract
-        IERC20(address(this)).safeTransferFrom(msg.sender, address(this), _amount.mul(10 ** 18));
+        IERC20(address(this)).safeTransferFrom(msg.sender, address(this), _amount.mul(10 ** decimals()));
 
         // Receive the BUSD amount from the smart contract
         _busd.safeTransferFrom(address(this), msg.sender,  _finalPrice);
