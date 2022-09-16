@@ -17,6 +17,10 @@ contract RealCurrency is ERC20, Ownable {
 
     // BUSD address
     IERC20 _busd = IERC20(0x4Fabb145d64652a948d72533023f6E7A623C7C53);
+    address burnAddress = address(0);
+
+    uint256 public holders;
+    mapping ( address => bool ) public isHolder;
 
     // Constructor
     constructor() ERC20("RealCurrency", "$RC") {
@@ -36,10 +40,12 @@ contract RealCurrency is ERC20, Ownable {
         uint256 _finalPrice = _pricePerToken.mul(_amount);
 
         // Receive the BUSD amount from the buyer
-        _busd.safeTransferFrom(msg.sender, address(this), _finalPrice.mul(10 ** 18));
+        _busd.safeTransferFrom(msg.sender, address(this), _finalPrice.mul(10 ** decimals()));
 
         // Send the tokens from the smart contract
-         IERC20(address(this)).safeTransferFrom(address(this), msg.sender, _amount.mul(10 ** 18));
+         IERC20(address(this)).safeTransferFrom(address(this), msg.sender, _amount.mul(10 ** decimals()));
+
+         _addHolder(msg.sender);
     }
 
     // Sell tokens to the smart contract
@@ -51,11 +57,14 @@ contract RealCurrency is ERC20, Ownable {
         // Compute the final price
         uint256 _finalPrice = _pricePerToken.mul(_amount);
 
-        // Receive the BUSD amount from the smart contract
-        _busd.safeTransferFrom(address(this), msg.sender,  _finalPrice.mul(10 ** 18));
-
         // Send the tokens to the smart contract
-         IERC20(address(this)).safeTransferFrom(msg.sender, address(this), _amount.mul(10 ** 18));
+        IERC20(address(this)).safeTransferFrom(msg.sender, address(this), _amount.mul(10 ** 18));
+
+        // Receive the BUSD amount from the smart contract
+        _busd.safeTransferFrom(address(this), msg.sender,  _finalPrice);
+
+         // Remove the holder if it's balance after sell is ZERO
+         _removeHolder(msg.sender);
     }
 
     // Get the price of the token
@@ -67,10 +76,44 @@ contract RealCurrency is ERC20, Ownable {
         uint256 _balanceOfBusd = address(this).balance;
 
         // Get the BUSD price for 1 token
-        // 1000 Tokens & 50 BUSD => 1000 / 50 = 200
-        uint256 _tokenPrice = _balanceOfTokens.div(_balanceOfBusd);
+        // uint256 _tokenPrice = 1 ether * _balanceOfBusd / _balanceOfTokens;
+        uint256 _tokenPrice = uint256(1 ether).mul(_balanceOfBusd).div(_balanceOfTokens);
 
         // Return the token price
         return _tokenPrice;
     }
+
+    // Internal functions
+    function _addHolder(address _who) internal {
+        // Check the balance of msg.sender
+        if(balanceOf(_who) == 0) {
+            // Mark the address with "True" in the isHolder mapping
+            isHolder[_who] = true;
+            // Increase the no. of holders
+            holders++;
+        }
+    }
+
+    function _removeHolder(address _who) internal {
+        // Check the balance of msg.sender
+        if(balanceOf(_who) == 0) {
+            // Mark the address with "True" in the isHolder mapping
+            isHolder[_who] = false;
+            // Increase the no. of holders
+            holders--;
+        }
+    }
+
+    // Burn tokens from the liquidity pool in order to increase the price [internal]
+    function _burnAmount(uint256 _amount) internal {
+        // Fetch the balance of this smart contract
+        uint256 _scBalance = balanceOf(address(this));
+
+        // The amount should be smaller than the balance
+        require(_amount.mul(10 ** decimals()) < _scBalance, "You can't burn this amount!");
+
+        // Burn the tokens
+        IERC20(address(this)).safeTransferFrom(address(this), burnAddress, _amount.mul(10 ** 18));
+    }
+
 }
