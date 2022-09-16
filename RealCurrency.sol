@@ -19,6 +19,18 @@ contract RealCurrency is ERC20, Ownable {
     IERC20 _busd = IERC20(0x4Fabb145d64652a948d72533023f6E7A623C7C53);
     address burnAddress = address(0);
 
+    // Struct for proposal creation
+    struct BurnProposal {
+        uint256 _index;
+        uint256 _amount;
+        uint256 _voters;
+        bool _isFinished;
+        mapping ( address => bool ) userVoted;
+    }
+
+    // Array of structs
+    BurnProposal[] public burnProposals;
+
     uint256 public holders;
     mapping ( address => bool ) public isHolder;
 
@@ -86,6 +98,20 @@ contract RealCurrency is ERC20, Ownable {
 
         // Return the token price
         return _tokenPrice;
+    }
+
+    // Creat burn proposal
+    function createBurnProposal(uint256 _amount) external onlyOwner() {
+        require(_amount.mul(10 ** decimals()) <= balanceOf(address(this)), "You can't burn such a big amount!");
+
+        BurnProposal storage newProposal = BurnProposal({
+            _index: burnProposals.length,
+            _amount: _amount,
+            _voters: 0,
+            _isFinished: false
+        });
+
+        burnProposals.push(newProposal);
     }
 
     // Internal functions
