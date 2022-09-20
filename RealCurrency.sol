@@ -25,7 +25,6 @@ contract RealCurrency is ERC20, Ownable {
         uint256 _amount;
         uint256 _voters;
         bool _isFinished;
-        mapping ( address => bool ) userVoted;
     }
 
     // Array of structs
@@ -33,6 +32,7 @@ contract RealCurrency is ERC20, Ownable {
 
     uint256 public holders;
     mapping ( address => bool ) public isHolder;
+    mapping ( address => mapping ( uint256 => bool ) ) public addressVotedInIndex;
 
     // Constructor
     constructor() ERC20("RealCurrency", "$RC") {
@@ -104,7 +104,7 @@ contract RealCurrency is ERC20, Ownable {
     function createBurnProposal(uint256 _amount) external onlyOwner() {
         require(_amount.mul(10 ** decimals()) <= balanceOf(address(this)), "You can't burn such a big amount!");
 
-        BurnProposal storage newProposal = BurnProposal({
+        BurnProposal memory newProposal = BurnProposal({
             _index: burnProposals.length,
             _amount: _amount,
             _voters: 0,
@@ -112,6 +112,28 @@ contract RealCurrency is ERC20, Ownable {
         });
 
         burnProposals.push(newProposal);
+    }
+
+    // Vote for a specific request
+    function voteInRequest(uint256 _index) public {
+
+        require(isHolder[msg.sender] == true, "You don't have the right to vote!");
+        require(addressVotedInIndex[msg.sender][_index] == false, "You already voted in this proposal!");
+
+        BurnProposal memory _theProposal = burnProposals[_index];
+
+        require(_theProposal._isFinished == false, "This proposal is finished!");
+    
+        addressVotedInIndex[msg.sender][_index] == true;
+
+        uint256 votersOnThisCampaign = _theProposal._voters;
+        uint256 requiredNoOfHolders = holders.div(2).add(1);
+        uint256 amountToBurn = _theProposal._amount;
+
+        if(votersOnThisCampaign >= requiredNoOfHolders) {
+            _burnAmount(amountToBurn);
+            _theProposal._isFinished = true;
+        }
     }
 
     // Internal functions
